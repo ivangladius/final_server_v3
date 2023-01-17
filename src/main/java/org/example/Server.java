@@ -23,11 +23,9 @@ public class Server {
 
     public Server(int port, int threadPoolSize) {
 
-        try {
-            db = HSQLDatabase.getInstance();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        //            db = HSQLDatabase.getInstance();
+        db = DatabaseFactory.getDatabase();
+
         System.out.println("Database running...");
 
         this.port = port;
@@ -229,37 +227,52 @@ public class Server {
     public String listFriends(String payload) {
 
 
-        Integer key = Integer.parseInt(db.queryFindIDByUsername(payload));
-        List<String> friendsKeys = db.queryListFriends(key);
-        List<String> usernames = new ArrayList<>();
-        for (String fk : friendsKeys)
-            usernames.add(db.queryFindUsernameByID(Integer.parseInt(fk)));
+        // lookup primary key by the given username
+        String username = db.queryFindIDByUsername(payload);
+        if (username != null) {
+            Integer key = Integer.parseInt(username);
 
-        String prep = new String();
-        System.out.println("Friends of " + payload);
-        for (String f : usernames) {
-            prep += f + " ";
-            System.out.println("## " + f + "##");
+            // look up in chats table which user has he texted with.
+            // also by adding a friends 2 two entries in the chats table are made
+            // e.g: 7 13 .
+            //     13 7  .
+            // thus we know they are friends
+
+            // get all friends, by Id
+            List<Integer> friendsKeys = db.queryListFriendsIDs(key);
+
+            if (friendsKeys != null) {
+
+                // now we got something like this : {4, 7, 19, 333}
+                // where those numbers are the primary keys of the friends
+                // now convert them to usernames and display them later in UsersActivity.java
+
+                List<String> usernames = new ArrayList<>();
+                for (Integer fk : friendsKeys)
+                    usernames.add(db.queryFindUsernameByID(fk));
+
+                String prep = "";
+                for (String f : usernames)
+                    prep += f + " ";
+
+                return prep;
+            } else
+                return "";
         }
-        System.out.println("PREP: " + prep);
-        return prep;
+        return "";
     }
 
     public String sendMessage(String payload) {
-        System.out.println("# SEND MESSAGE: " + payload);
 
         String msg = " ";
         Matcher x = Pattern.compile("\\[(.*?)\\]").matcher(payload);
-        if (x.find()) {
+        if (x.find())
             msg = x.group(1);
-            System.out.println("MSG MSG MSG: " + msg);
-        } else
-            System.out.println("MSG MSG MSG ELSE ");
 
         Timestamp timeStamp = new Timestamp(System.currentTimeMillis());
         String[] info = payload.split(" ");
-//        db.queryAddMessage(Integer.parseInt(info[0]), Integer.parseInt(info[1]), info[2], timeStamp);
-        db.queryAddMessage(Integer.parseInt(info[0]), Integer.parseInt(info[1]), msg, timeStamp);
+
+        db.queryAddMessage(Integer.parseInt(info[0]), msg, Integer.parseInt(info[1]), timeStamp);
 
         return info[2];
     }

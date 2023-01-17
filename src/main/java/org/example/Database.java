@@ -7,50 +7,48 @@ import java.sql.Timestamp;
 
 public interface Database {
 
-    public void databaseConnection() throws SQLException;
 
-    public void closeConnection(); // Do we need this method to close connection to the database or is it already included in the Java.connection;
+	public ResultSet executeQuery(String query) throws SQLException;
 
-    public ResultSet executeQuery(String query) throws SQLException; // Not sure whether we need this method or not
+	public void queryCreateTables() throws SQLException;
 
-    public int executeUpdate(String string) throws SQLException; // Not sure whether we need this method or not 
+	public String queryFindIDByEmail(String email);
 
-    public void queryCreateTables() throws SQLException;
+	public String queryFindIDByUsername(String username);
 
-    public String queryFindIDByEmail(String email);
+	public String queryFindUsernameByID(Integer id);
 
-    public String queryFindIDByUsername(String username);
+	public boolean queryValidateID(Integer id);
 
-    public boolean queryValidateID(Integer id);
+	public String queryInsertUser(String username, String email, String password);
 
-    public String queryInsertUser(String userName, String email, String password);
+	public int verifyLoginCredentials(String email, String password);
 
-    public int verifyLoginCredentials(String email, String password);
+	public int checkIfUserExists(String username, String email) throws SQLException;
 
-    public int checkIfUserExists(String username, String email);
+	public String queryGetUsername(String email);
 
-    public List<String[]> querySearchUsers(String name);
+	public List<Integer> queryListFriendsIDs(Integer id);
+	
+	public void databaseConnectionPoolStatistics();
 
-    public String queryGetUsername(String email);
+	public void removeMessagesWithDots();
 
-    String queryFindUsernameByID(Integer id);
+	public List<String[]> querySearchUsers(String name);
 
-    public int queryChangeUsername(Integer id, String userName);
+	public int queryChangeUsername(Integer id, String username);
 
-    public int queryChangeEmail(Integer id, String email);
+	public int queryChangeEmail(Integer id, String email);
 
-    public int queryChangePassword(Integer id, String password);
+	public int queryChangePassword(Integer id, String password);
 
-    public int queryDeleteUser(Integer id);
+	public int queryDeleteUser(Integer id);
 
-    public List<String> queryListFriends(Integer id);
+	public int queryAddMessage(Integer senderID, String message, Integer receiverID, Timestamp Time);
 
-    // we send . to chats table if friend was added, now we remove it if msg count > 2
-    public int cleanoutMessages() throws SQLException;
+	public List<String> queryGetMessages(Integer id, String partner);
 
-    public int queryAddMessage(Integer senderID, Integer receiverID, String message, Timestamp Time);
+	public int queryDeleteSelectedMessages(Integer senderID, Integer receiverID, List<Integer> messageID);
+	
 
-    public List<String> queryGetMessages(Integer id, String partner);
-
-    public int queryDeleteSelectedMessages(Integer senderId, Integer receiverId, List<Integer> messageId);
 }
