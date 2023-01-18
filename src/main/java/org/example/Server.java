@@ -55,6 +55,8 @@ public class Server {
 
     public void handle_connection(Socket cSocket) {
 
+        System.out.println("active threads: " + executor.getActiveCount());
+
         System.out.println("\nClient connected: " + cSocket.getRemoteSocketAddress().toString());
 
         PrintWriter out;
@@ -105,6 +107,18 @@ public class Server {
             else if (operation.equals("getMessages"))
                 reply.put("payload", getMessages(json.get("payload").toString()));
 
+            else if (operation.equals("getEmailByUsername"))
+                reply.put("payload", getEmailByUsername(json.get("payload").toString()));
+
+            else if (operation.equals("changeUsername"))
+                reply.put("payload", changeUsername(json.get("payload").toString()));
+
+            else if (operation.equals("changeEmail"))
+                reply.put("payload", changeEmail(json.get("payload").toString()));
+
+            else if (operation.equals("changePassword"))
+                reply.put("payload", changePassword(json.get("payload").toString()));
+
 
             else
                 reply.put("payload", "empty");
@@ -148,6 +162,42 @@ public class Server {
         closeClient(cSocket);
     }
 
+    private String changePassword(String payload) {
+
+        // getting "userid passwordToChangeTo"
+        String[] info = payload.split(" ");
+
+        db.queryChangePassword(Integer.valueOf(info[0]), info[1]);
+
+        return null;
+    }
+
+    private String changeUsername(String payload) {
+
+        // getting "userid nameToChangeTheUsernameInto"
+        String[] info = payload.split(" ");
+
+        db.queryChangeUsername(Integer.valueOf(info[0]), info[1]);
+
+        return null;
+    }
+
+    private String changeEmail(String payload) {
+
+        // getting "userid nameToChangeEmailTo"
+        String[] info = payload.split(" ");
+
+        db.queryChangeEmail(Integer.valueOf(info[0]), info[1]);
+
+        return null;
+    }
+
+
+    private String getEmailByUsername(String payload) {
+        System.out.println("GOT CALLED");
+        return db.queryFindEmailByUsername(payload);
+    }
+
     private void closeClient(Socket cSocket) {
         try {
             cSocket.close();
@@ -158,9 +208,7 @@ public class Server {
     public void stop() {
         try {
             serverSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NullPointerException e) {
+        } catch (IOException | NullPointerException e) {
             e.printStackTrace();
         }
     }
@@ -217,7 +265,7 @@ public class Server {
         }
         Collections.sort(users);
 
-        String usersPayload = new String();
+        String usersPayload = "";
         for (String u : users)
             usersPayload += u + " ";
 
@@ -315,7 +363,7 @@ public class Server {
         for (String m : messages) {
             System.out.println("m: " + m);
 //            m = new String("[".concat(m).concat("]"));
-            reply += m ;
+            reply += m;
 //            System.out.println("BUILD: " + m);
         }
 

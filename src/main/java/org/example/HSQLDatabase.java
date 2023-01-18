@@ -153,6 +153,24 @@ public class HSQLDatabase implements Database {
 	}
 
 	@Override
+	public String queryFindEmailByUsername(String username) {
+		try {
+
+			PreparedStatement ps = connection.prepareStatement("SELECT Email FROM USERS WHERE User_Name = ?");
+			ps.setString(1, username);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				System.out.printf("RETURNING: " + rs.getString(1));
+				return rs.getString(1); // return email
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
+	@Override
 	public String queryFindIDByUsername(String username) {
 
 		try {

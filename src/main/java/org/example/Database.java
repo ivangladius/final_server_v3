@@ -14,6 +14,8 @@ public interface Database {
 
 	public String queryFindIDByEmail(String email);
 
+	public String queryFindEmailByUsername(String username);
+
 	public String queryFindIDByUsername(String username);
 
 	public String queryFindUsernameByID(Integer id);
