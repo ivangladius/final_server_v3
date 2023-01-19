@@ -53,113 +53,125 @@ public class Server {
         }
     }
 
-    public void handle_connection(Socket cSocket) {
+    public String[] readFromClient(Socket clientSocket, BufferedReader reader) throws IOException {
 
-        System.out.println("active threads: " + executor.getActiveCount());
+        // read data from client (json as string format)
+        String result = reader.readLine();
 
-        System.out.println("\nClient connected: " + cSocket.getRemoteSocketAddress().toString());
+        // trim object ready to extract information
+        int i = result.indexOf("{");
+        result = result.substring(i);
+        JSONObject json = new JSONObject(result.trim());
+//        System.out.println(json.toString(4));
 
-        PrintWriter out;
-        BufferedReader in;
+
+        return new String[]{
+                json.get("operation").toString(),
+                json.get("payload").toString()
+        };
+    }
+
+    public void sendToClient(Socket clientSocket, String operation, String payload,
+                             PrintWriter writer) throws IOException {
+
+        JSONObject json = new JSONObject();
+        json.put("operation", operation);
+        json.put("payload", payload);
+
+        // write data to client (json will be converted to a String
+        writer.println(json);
+
+    }
+
+    public void handle_connection(Socket clientSocket) {
+
+        System.out.println("\nClient connected: " + clientSocket.getRemoteSocketAddress().toString());
+
+        // initialized here so we can close the streams and avoid
+        // memory leaks
+        BufferedReader reader = null;
+        PrintWriter writer = null;
+
         try {
-            out = new PrintWriter(cSocket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(cSocket.getInputStream()));
+            reader =
+                    new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            writer =
+                    new PrintWriter(clientSocket.getOutputStream(), true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-            String result = in.readLine();
+        String receivedOperation;
+        String receivedPayload;
 
-            // TODO : CAN CRASH IF GARBAGE IS SEND
-            int i = result.indexOf("{");
-            result = result.substring(i);
-            JSONObject json = new JSONObject(result.trim());
-            System.out.println(json.toString(4));
+        try {
 
-//
-            System.out.println("operation: " + json.get("operation"));
-
-            // answer
-            JSONObject reply = new JSONObject();
-            reply.put("key", json.get("key"));
-            reply.put("operation", json.get("operation"));
-
-            String operation = json.get("operation").toString();
-
-            if (operation.equals("getIdByUsername"))
-                reply.put("payload", getIdByUsername(json.get("payload").toString()));
-
-            else if (operation.equals("getUsername"))
-                reply.put("payload", getUsername(json.get("payload").toString()));
-
-            else if (operation.equals("createUser"))
-                reply.put("payload", createUser(json.get("payload").toString()));
-
-            else if (operation.equals("login"))
-                reply.put("payload", login(json.get("payload").toString()));
-
-            else if (operation.equals("searchUsers"))
-                reply.put("payload", searchUsers(json.get("payload").toString()));
-
-            else if (operation.equals("sendMessage"))
-                reply.put("payload", sendMessage(json.get("payload").toString()));
-
-            else if (operation.equals("listFriends"))
-                reply.put("payload", listFriends(json.get("payload").toString()));
-
-            else if (operation.equals("getMessages"))
-                reply.put("payload", getMessages(json.get("payload").toString()));
-
-            else if (operation.equals("getEmailByUsername"))
-                reply.put("payload", getEmailByUsername(json.get("payload").toString()));
-
-            else if (operation.equals("changeUsername"))
-                reply.put("payload", changeUsername(json.get("payload").toString()));
-
-            else if (operation.equals("changeEmail"))
-                reply.put("payload", changeEmail(json.get("payload").toString()));
-
-            else if (operation.equals("changePassword"))
-                reply.put("payload", changePassword(json.get("payload").toString()));
+            String[] receivedData = readFromClient(clientSocket, reader);
+            receivedOperation = receivedData[0];
+            receivedPayload = receivedData[1];
 
 
-            else
-                reply.put("payload", "empty");
+            String sendingOperation = receivedOperation;
+            String sendingPayload; // assigned in the switch statement below
 
-            out.println(reply.toString());
-            System.out.println("data send back");
 
-            out.close();
-            in.close();
+            switch (receivedOperation) {
+                case "getIdByUsername":
+                    sendingPayload = getIdByUsername(receivedPayload);
+                    break;
+                case "getUsername":
+                    sendingPayload = getUsername(receivedPayload);
+                    break;
+                case "createUser":
+                    sendingPayload = createUser(receivedPayload);
+                    break;
+                case "login":
+                    sendingPayload = login(receivedPayload);
+                    break;
+                case "searchUsers":
+                    sendingPayload = searchUsers(receivedPayload);
+                    break;
+                case "sendMessage":
+                    sendingPayload = sendMessage(receivedPayload);
+                    break;
+                case "listFriends":
+                    sendingPayload = listFriends(receivedPayload);
+                    break;
+                case "getMessages":
+                    sendingPayload = getMessages(receivedPayload);
+                    break;
+                case "getEmailByUsername":
+                    sendingPayload = getEmailByUsername(receivedPayload);
+                    break;
+                case "changeUsername":
+                    sendingPayload = changeUsername(receivedPayload);
+                    break;
+                case "changeEmail":
+                    sendingPayload = changeEmail(receivedPayload);
+                    break;
+                case "changePassword":
+                    sendingPayload = changePassword(receivedPayload);
+                    break;
+                default:
+                    sendingPayload = "empty";
+                    break;
+            }
 
-//            ResultSet result2 = db.executeQuery("SELECT * FROM users;");
-//
-//            String id, username, email, password;
-//            id = username = email = password = null;
-//            while (result2.next()) {
-//
-//                id = result2.getString(1);
-//                username = result2.getString(2);
-//                email = result2.getString(3);
-//                password = result2.getString(4);
-//
-//                System.out.println(id + ", " + username + " " + email + " " + password);
-//
-//            }
-//            showAllMessages();
 
-//            System.out.println
-//                    ("new user: " + id + ", " + username + " " + email + " " + password);
-//
-//            result2.close();
+            sendToClient(clientSocket, sendingOperation, sendingPayload, writer);
+
+            if (reader != null && writer != null) {
+                reader.close();
+                writer.close();
+            }
 
 
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-//        catch (SQLException e) {
-//            throw new RuntimeException(e);
-//        }
 
-        closeClient(cSocket);
+        closeClient(clientSocket);
     }
 
     private String changePassword(String payload) {
@@ -177,9 +189,7 @@ public class Server {
         // getting "userid nameToChangeTheUsernameInto"
         String[] info = payload.split(" ");
 
-        db.queryChangeUsername(Integer.valueOf(info[0]), info[1]);
-
-        return null;
+        return String.valueOf(db.queryChangeUsername(Integer.valueOf(info[0]), info[1]));
     }
 
     private String changeEmail(String payload) {
@@ -187,9 +197,8 @@ public class Server {
         // getting "userid nameToChangeEmailTo"
         String[] info = payload.split(" ");
 
-        db.queryChangeEmail(Integer.valueOf(info[0]), info[1]);
+        return String.valueOf(db.queryChangeEmail(Integer.valueOf(info[0]), info[1]));
 
-        return null;
     }
 
 
@@ -214,9 +223,7 @@ public class Server {
     }
 
     public String getIdByUsername(String username) {
-        String id = db.queryFindIDByUsername(username);
-        System.out.println("SERVER ID: " + id);
-        return id;
+        return db.queryFindIDByUsername(username);
     }
 
     public String getUsername(String payload) {
@@ -226,50 +233,56 @@ public class Server {
     public String createUser(String payload) {
         if (payload == null)
             return " ";
-        System.out.println("client payload: " + payload);
+
+        // payload is as follows
+        // "username email password
         String[] data = payload.split(" ");
-        String userId = db.queryInsertUser(data[0], data[1], data[2]);
 
-        if (userId.equals("1"))
-            return "1";
-        else if (userId.equals("2"))
-            return "2";
-        else if (userId.equals("3"))
-            return "3";
-
-
-        System.out.println("### USERID: " + userId);
-        return userId;
+        // if username already exist:           return 1
+        // if email already exist:              return 2
+        // if username and email already exist: return 3
+        // else return primary key of created user
+        return db.queryInsertUser(data[0], data[1], data[2]);
     }
 
     public String login(String payload) {
-        System.out.println("HELLLO LOGIN");
-        System.out.println("XXX PAYLOAD: " + payload);
         String[] cred = payload.split(" ");
+
+        // return userId (primary key) if login credentials are correct
         if (db.verifyLoginCredentials(cred[0], cred[1]) == 1) {
-            System.out.println("QUERY_GET_USERNAME: " + db.queryGetUsername(cred[0]));
             return db.queryFindIDByEmail(cred[0]) + " " + db.queryGetUsername(cred[0]);
-        } else {
-            System.out.println("ELSE ELSE ELSE");
         }
         return null;
     }
 
     public String searchUsers(String payload) {
 
+        // search for all users containing the letters in payload
+        // returning username and profile picture (profile picture not implemented in the app)
+
         List<String[]> foundUsers = db.querySearchUsers(payload);
         List<String> users = new ArrayList<>();
+
+        // add only the username to users List, not the profile pictures
+        // where st[0] is the username and st[1] the profile_picture
+        // leaving profile picture in the code, in case we wanted to implement it later
 
         for (String[] st : foundUsers) {
             users.add(st[0]);
         }
+        // now sort the username alphabetic
         Collections.sort(users);
 
-        String usersPayload = "";
+        // StringBuilder concatenating will be faster because compiler can't optimize
+        // Strings in a loop
+        StringBuilder usersPayload = new StringBuilder();
         for (String u : users)
-            usersPayload += u + " ";
+            usersPayload.append(u).append(" ");
 
-        return usersPayload;
+        // sending user a String with all users found
+        // separated by spaces
+        // e.g: "user1 user2 user3"
+        return usersPayload.toString();
     }
 
     public String listFriends(String payload) {
@@ -299,11 +312,11 @@ public class Server {
                 for (Integer fk : friendsKeys)
                     usernames.add(db.queryFindUsernameByID(fk));
 
-                String prep = "";
+                StringBuilder prep = new StringBuilder();
                 for (String f : usernames)
-                    prep += f + " ";
+                    prep.append(f).append(" ");
 
-                return prep;
+                return prep.toString();
             } else
                 return "";
         }
@@ -347,34 +360,28 @@ public class Server {
     }
 
     public String getMessages(String payload) {
-        System.out.println("CALLED ME");
         String[] prep = payload.split(" ");
         Integer id = Integer.valueOf(prep[0]);
         String partner = prep[1];
-        System.out.println("PRIM: " + id + " PARTNER: " + partner);
         List<String> messages = db.queryGetMessages(id, partner);
-        System.out.println("MEESAGE SIZE: " + messages.size());
         if (messages.size() == 0)
             return null;
-        else if (messages == null)
-            return null;
 
-        String reply = new String();
-        for (String m : messages) {
-            System.out.println("m: " + m);
-//            m = new String("[".concat(m).concat("]"));
-            reply += m;
-//            System.out.println("BUILD: " + m);
-        }
+        // now build message in a String like that
+        // "[user time] [message1]\t[user2 time] [message2]\t
+        // the \t is important for separating the message in the Client class
 
-//        System.out.println("$$$ SENDING: \n" + reply);
-        return reply;
+        StringBuilder reply = new StringBuilder();
+        for (String m : messages)
+            reply.append(m);
+
+        return reply.toString();
     }
 
-    class MyRunnable implements Runnable {
+    static class MyRunnable implements Runnable {
 
-        private Server server;
-        private Socket client;
+        private final Server server;
+        private final Socket client;
 
         // passing original server object to this constructor
         public MyRunnable(Server server, Socket client) {

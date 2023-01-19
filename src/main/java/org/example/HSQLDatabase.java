@@ -15,673 +15,679 @@ import oracle.ucp.jdbc.JDBCConnectionPoolStatistics;
 
 public class HSQLDatabase implements Database {
 
-	static PoolDataSource pds;
-	Connection connection;
-	public static HSQLDatabase instance = null;
+    static PoolDataSource pds;
+    Connection connection;
+    public static HSQLDatabase instance = null;
 
-	public static Connection createHSQLDBConnection() throws SQLException {
+    public static Connection createHSQLDBConnection() throws SQLException {
 
-		try {
+        try {
 
-			// Creates a new PoolDataSource using the factory
+            // Creates a new PoolDataSource using the factory
 
-			pds = PoolDataSourceFactory.getPoolDataSource();
+            pds = PoolDataSourceFactory.getPoolDataSource();
 
-			// Setting up the getConnection() information
+            // Setting up the getConnection() information
 
-			pds.setConnectionPoolName("HSQLDBConnection");
-			pds.setURL(
-					"jdbc:hsqldb:file:~/DB_TEST/; hsqldb.lock_file = false; shutdown = true;");
-			pds.setConnectionFactoryClassName("org.hsqldb.jdbc.JDBCDriver");
-			pds.setUser("myDB");
-			pds.setPassword("PK313");
+            pds.setConnectionPoolName("HSQLDBConnection");
+            pds.setURL(
+                    "jdbc:hsqldb:file:~/DB_TEST/; hsqldb.lock_file = false; shutdown = true;");
+            pds.setConnectionFactoryClassName("org.hsqldb.jdbc.JDBCDriver");
+            pds.setUser("myDB");
+            pds.setPassword("PK313");
 
-			// Setting the initial getConnection() properties
+            // Setting the initial getConnection() properties
 
-			pds.setInitialPoolSize(10);
-			pds.setMaxPoolSize(10);
-			pds.setMinPoolSize(2);
+            pds.setInitialPoolSize(10);
+            pds.setMaxPoolSize(10);
+            pds.setMinPoolSize(2);
 
-			return pds.getConnection();
+            return pds.getConnection();
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			System.out.println("No more connections are availabe");
-			return null;
+            System.out.println("No more connections are availabe");
+            return null;
 
-		}
-	}
+        }
+    }
 
-	public static HSQLDatabase getInstance() throws SQLException, ClassNotFoundException {
+    public static HSQLDatabase getInstance() throws SQLException, ClassNotFoundException {
 
-		// Singleton pattern implementation
-		// Only one instance will be created and will be reused for each object
+        // Singleton pattern implementation
+        // Only one instance will be created and will be reused for each object
 
-		if (instance == null) {
+        if (instance == null) {
 
-			synchronized (Database.class) {
+            synchronized (Database.class) {
 
-				instance = new HSQLDatabase();
-				instance.queryCreateTables();
+                instance = new HSQLDatabase();
+                instance.queryCreateTables();
 
-			}
-		}
+            }
+        }
 
-		return instance;
-	}
+        return instance;
+    }
 
-	@Override
-	public void databaseConnectionPoolStatistics() {
+    @Override
+    public void databaseConnectionPoolStatistics() {
 
-		JDBCConnectionPoolStatistics statistics = (JDBCConnectionPoolStatistics) pds.getStatistics();
+        JDBCConnectionPoolStatistics statistics = (JDBCConnectionPoolStatistics) pds.getStatistics();
 
-		if (statistics != null) {
+        if (statistics != null) {
 
-			int borrowedConnections = statistics.getBorrowedConnectionsCount();
-			int availableConnections = statistics.getAvailableConnectionsCount();
+            int borrowedConnections = statistics.getBorrowedConnectionsCount();
+            int availableConnections = statistics.getAvailableConnectionsCount();
 
-			System.out.println("Borrowed Connections: " + borrowedConnections);
-			System.out.println("Available Connections: " + availableConnections);
+            System.out.println("Borrowed Connections: " + borrowedConnections);
+            System.out.println("Available Connections: " + availableConnections);
 
-		} else {
-			System.out.println("Statistics are not available");
-		}
+        } else {
+            System.out.println("Statistics are not available");
+        }
 
-	}
+    }
 
-	@Override
-	public ResultSet executeQuery(String query) throws SQLException {
+    @Override
+    public ResultSet executeQuery(String query) throws SQLException {
 
-		try {
+        try {
 
-			Statement statement = connection.createStatement();
-			ResultSet result = statement.executeQuery(query);
+            Statement statement = connection.createStatement();
+            ResultSet result = statement.executeQuery(query);
 
-			return result;
+            return result;
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			e.printStackTrace();
-			return null;
+            e.printStackTrace();
+            return null;
 
-		}
-	}
+        }
+    }
 
-	@Override
-	public void queryCreateTables() throws SQLException {
+    @Override
+    public void queryCreateTables() throws SQLException {
 
-		try {
+        try {
 
-			connection = createHSQLDBConnection();
+            connection = createHSQLDBConnection();
 
-			PreparedStatement ps1 = connection.prepareStatement(
-					"CREATE TABLE IF NOT EXISTS USERS (ID INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY NOT NULL, User_Name VARCHAR(25) NOT NULL, Email VARCHAR(50) NOT NULL, Password VARCHAR(15) NOT NULL, Profile_Picture VARCHAR(255));");
-			PreparedStatement ps2 = connection.prepareStatement(
-					"CREATE TABLE IF NOT EXISTS CHATS (Message_ID INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY NOT NULL, Sender_ID INT NOT NULL, Message VARCHAR(255) NOT NULL, Receiver_ID INT NOT NULL, Time TIMESTAMP NOT NULL, FOREIGN KEY (Sender_ID) references users(ID) ON DELETE CASCADE, FOREIGN KEY (RECEIVER_ID) REFERENCES users(ID) ON DELETE CASCADE);");
+            PreparedStatement ps1 = connection.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS USERS (ID INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY NOT NULL, User_Name VARCHAR(25) NOT NULL, Email VARCHAR(50) NOT NULL, Password VARCHAR(15) NOT NULL, Profile_Picture VARCHAR(255));");
+            PreparedStatement ps2 = connection.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS CHATS (Message_ID INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY NOT NULL, Sender_ID INT NOT NULL, Message VARCHAR(255) NOT NULL, Receiver_ID INT NOT NULL, Time TIMESTAMP NOT NULL, FOREIGN KEY (Sender_ID) references users(ID) ON DELETE CASCADE, FOREIGN KEY (RECEIVER_ID) REFERENCES users(ID) ON DELETE CASCADE);");
 
-			ps1.executeUpdate();
-			ps2.executeUpdate();
+            ps1.executeUpdate();
+            ps2.executeUpdate();
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			e.printStackTrace();
+            e.printStackTrace();
 
-		}
-	}
+        }
+    }
 
-	@Override
-	public String queryFindIDByEmail(String email) {
+    @Override
+    public String queryFindIDByEmail(String email) {
 
-		try {
+        try {
 
-			PreparedStatement ps = connection.prepareStatement("SELECT * FROM USERS WHERE EMAIL = ?");
-			ps.setString(1, email);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM USERS WHERE EMAIL = ?");
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
 
-				return rs.getString(1); // If the email already exists in the database
+                return rs.getString(1); // If the email already exists in the database
 
-			}
+            }
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			e.printStackTrace();
+            e.printStackTrace();
 
-		}
+        }
 
-		return null; // If email doesn't exist in the database
-	}
+        return null; // If email doesn't exist in the database
+    }
 
-	@Override
-	public String queryFindEmailByUsername(String username) {
-		try {
+    @Override
+    public String queryFindEmailByUsername(String username) {
+        try {
 
-			PreparedStatement ps = connection.prepareStatement("SELECT Email FROM USERS WHERE User_Name = ?");
-			ps.setString(1, username);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
-				System.out.printf("RETURNING: " + rs.getString(1));
-				return rs.getString(1); // return email
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+            PreparedStatement ps = connection.prepareStatement("SELECT Email FROM USERS WHERE User_Name = ?");
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                System.out.printf("RETURNING: " + rs.getString(1));
+                return rs.getString(1); // return email
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	@Override
-	public String queryFindIDByUsername(String username) {
+    @Override
+    public String queryFindIDByUsername(String username) {
 
-		try {
+        try {
 
-			PreparedStatement ps = connection.prepareStatement("SELECT * FROM USERS WHERE User_Name = ?");
-			ps.setString(1, username);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM USERS WHERE User_Name = ?");
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
 
-				return rs.getString(1); // Returns the ID of the respective username
+                return rs.getString(1); // Returns the ID of the respective username
 
-			}
+            }
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			e.printStackTrace();
+            e.printStackTrace();
 
-		}
+        }
 
-		return null; // Returns null, if for some reason no ID exists for the respective username
-	}
+        return null; // Returns null, if for some reason no ID exists for the respective username
+    }
 
-	@Override
-	public String queryFindUsernameByID(Integer id) {
+    @Override
+    public String queryFindUsernameByID(Integer id) {
 
-		try {
+        try {
 
-			PreparedStatement ps = connection.prepareStatement("SELECT * FROM USERS WHERE id = ?");
-			ps.setInt(1, id);
-			ResultSet rs = ps.executeQuery();
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM USERS WHERE id = ?");
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
 
-			if (rs.next()) {
+            if (rs.next()) {
 
-				return rs.getString(2); // Returns username for the respective ID
+                return rs.getString(2); // Returns username for the respective ID
 
-			}
+            }
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			e.printStackTrace();
+            e.printStackTrace();
 
-		}
+        }
 
-		return null; // Returns null, if no username is found for the respective ID
-	}
+        return null; // Returns null, if no username is found for the respective ID
+    }
 
-	@Override
-	public boolean queryValidateID(Integer id) {
+    @Override
+    public boolean queryValidateID(Integer id) {
 
-		boolean status = false;
+        boolean status = false;
 
-		try {
+        try {
 
-			PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE id = ?");
-			ps.setInt(1, id);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE id = ?");
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
 
-				status = true;
-				return status; // If ID exists in the user's table
+                status = true;
+                return status; // If ID exists in the user's table
 
-			}
+            }
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			e.printStackTrace();
+            e.printStackTrace();
 
-		}
+        }
 
-		return status; // Error in executing the query OR ID does not exist in the user's table
-	}
+        return status; // Error in executing the query OR ID does not exist in the user's table
+    }
 
-	@Override
-	public int checkIfUserExists(String username, String email) {
+    @Override
+    public int checkIfUserExists(String username, String email) {
 
-		int userExists = 0;
+        int userExists = 0;
 
-		// Checks if username exists in the database
+        // Checks if username exists in the database
 
-		try {
+        try {
 
-			PreparedStatement userPS = connection.prepareStatement("SELECT * FROM USERS WHERE User_Name = ?");
-			userPS.setString(1, username);
-			ResultSet UserRS = userPS.executeQuery();
-			if (UserRS.next() && UserRS.getInt(1) > 0) {
+            PreparedStatement userPS = connection.prepareStatement("SELECT * FROM USERS WHERE User_Name = ?");
+            userPS.setString(1, username);
+            ResultSet UserRS = userPS.executeQuery();
+            if (UserRS.next() && UserRS.getInt(1) > 0) {
 
-				userExists = userExists + 1;
+                userExists = userExists + 1;
 
-			}
+            }
 
-			// Checks if email exists in the database
+            // Checks if email exists in the database
 
-			PreparedStatement emailPS = connection.prepareStatement("SELECT * FROM USERS WHERE Email = ?");
-			emailPS.setString(1, email);
-			ResultSet emailRS = emailPS.executeQuery();
+            PreparedStatement emailPS = connection.prepareStatement("SELECT * FROM USERS WHERE Email = ?");
+            emailPS.setString(1, email);
+            ResultSet emailRS = emailPS.executeQuery();
 
-			if (emailRS.next() && emailRS.getInt(1) > 0) {
+            if (emailRS.next() && emailRS.getInt(1) > 0) {
 
-				userExists = userExists + 2;
+                userExists = userExists + 2;
 
-			}
+            }
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			e.printStackTrace();
+            e.printStackTrace();
 
-		}
+        }
 
-		return userExists;
-	}
+        return userExists;
+    }
 
-	@Override
-	public String queryInsertUser(String username, String email, String password) {
+    @Override
+    public String queryInsertUser(String username, String email, String password) {
 
-		if (checkIfUserExists(username, email) == 1) {
+        if (checkIfUserExists(username, email) == 1) {
 
-			return String.valueOf(1);
+            return String.valueOf(1);
 
-		}
+        } else if (checkIfUserExists(username, email) == 2) {
 
-		else if (checkIfUserExists(username, email) == 2) {
+            return String.valueOf(2);
 
-			return String.valueOf(2);
+        } else if (checkIfUserExists(username, email) == 3) {
 
-		}
+            return String.valueOf(3);
 
-		else if (checkIfUserExists(username, email) == 3) {
+        }
 
-			return String.valueOf(3);
+        try {
 
-		}
+            PreparedStatement ps = connection
+                    .prepareStatement("INSERT INTO USERS(USER_NAME, EMAIL, PASSWORD) VALUES (?, ?, ?)");
+            ps.setString(1, username);
+            ps.setString(2, email);
+            ps.setString(3, password);
 
-		try {
+            ps.executeUpdate();
 
-			PreparedStatement ps = connection
-					.prepareStatement("INSERT INTO USERS(USER_NAME, EMAIL, PASSWORD) VALUES (?, ?, ?)");
-			ps.setString(1, username);
-			ps.setString(2, email);
-			ps.setString(3, password);
+            return queryFindIDByEmail(email); // Fetches the user's ID from the users table and returns it to the server
 
-			ps.executeUpdate();
+        } catch (SQLException e) {
 
-			return queryFindIDByEmail(email); // Fetches the user's ID from the users table and returns it to the server
+            e.printStackTrace();
+            return null; // Error in adding new user
 
-		} catch (SQLException e) {
+        }
+    }
 
-			e.printStackTrace();
-			return null; // Error in adding new user
+    @Override
+    public int verifyLoginCredentials(String email, String password) {
 
-		}
-	}
+        try {
 
-	@Override
-	public int verifyLoginCredentials(String email, String password) {
+            PreparedStatement ps = connection
+                    .prepareStatement("SELECT COUNT(*) FROM USERS WHERE Email = ? AND Password = ?");
+            ps.setString(1, email);
+            ps.setString(2, password);
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            return rs.getInt(1);
 
-		try {
+        } catch (SQLException e) {
 
-			PreparedStatement ps = connection
-					.prepareStatement("SELECT COUNT(*) FROM USERS WHERE Email = ? AND Password = ?");
-			ps.setString(1, email);
-			ps.setString(2, password);
-			ResultSet rs = ps.executeQuery();
-			rs.next();
-			return rs.getInt(1);
+            e.printStackTrace();
+            return 0;
 
-		} catch (SQLException e) {
+        }
+    }
 
-			e.printStackTrace();
-			return 0;
+    @Override
+    public String queryGetUsername(String email) {
 
-		}
-	}
+        try {
 
-	@Override
-	public String queryGetUsername(String email) {
+            PreparedStatement ps = connection.prepareStatement("SELECT User_Name FROM USERS WHERE Email = ?");
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
 
-		try {
+                return rs.getString(1);
 
-			PreparedStatement ps = connection.prepareStatement("SELECT User_Name FROM USERS WHERE Email = ?");
-			ps.setString(1, email);
-			ResultSet rs = ps.executeQuery();
-			if (rs.next()) {
+            }
 
-				return rs.getString(1);
+        } catch (SQLException e) {
 
-			}
+            e.printStackTrace();
+            return null;
+        }
 
-		} catch (SQLException e) {
+        return null;
+    }
 
-			e.printStackTrace();
-			return null;
-		}
+    @Override
+    public List<Integer> queryListFriendsIDs(Integer id) {
 
-		return null;
-	}
+        List<Integer> friendsIDs = new ArrayList<>();
 
-	@Override
-	public List<Integer> queryListFriendsIDs(Integer id) {
+        try {
 
-		List<Integer> friendsIDs = new ArrayList<>();
+            PreparedStatement ps = connection
+                    .prepareStatement("SELECT DISTINCT Receiver_ID FROM CHATS WHERE Sender_ID = ?");
+            ps.setInt(1, id);
 
-		try {
+            ResultSet rs = ps.executeQuery();
 
-			PreparedStatement ps = connection
-					.prepareStatement("SELECT DISTINCT Receiver_ID FROM CHATS WHERE Sender_ID = ?");
-			ps.setInt(1, id);
+            while (rs.next()) {
 
-			ResultSet rs = ps.executeQuery();
+                int friendID = rs.getInt(1);
+                friendsIDs.add(friendID);
 
-			while (rs.next()) {
+            }
 
-				int friendID = rs.getInt(1);
-				friendsIDs.add(friendID);
+            return friendsIDs;
 
-			}
+        } catch (SQLException e) {
 
-			return friendsIDs;
+            e.printStackTrace();
+            return null;
+        }
+    }
 
-		} catch (SQLException e) {
+    @Override
+    public void removeMessagesWithDots() {
 
-			e.printStackTrace();
-			return null;
-		}
-	}
+        // We automatically send . to chats table when a new friend is added. The dots
+        // will be removed once the number of messages gets greater than 2
 
-	@Override
-	public void removeMessagesWithDots() {
+        try {
 
-		// We automatically send . to chats table when a new friend is added. The dots
-		// will be removed once the number of messages gets greater than 2
+            PreparedStatement ps = connection.prepareStatement("DELETE FROM chats WHERE message = ?");
+            ps.setString(1, ".");
 
-		try {
+            ps.executeQuery();
 
-			PreparedStatement ps = connection.prepareStatement("DELETE FROM chats WHERE message = ?");
-			ps.setString(1, ".");
+        } catch (SQLException e) {
 
-			ps.executeQuery();
+            e.printStackTrace();
 
-		} catch (SQLException e) {
+        }
+    }
 
-			e.printStackTrace();
+    @Override
+    public List<String[]> querySearchUsers(String searchString) {
 
-		}
-	}
+        try {
 
-	@Override
-	public List<String[]> querySearchUsers(String searchString) {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE User_Name LIKE ?");
+            ps.setString(1, "%" + searchString + "%");
+            ResultSet rs = ps.executeQuery();
 
-		try {
+            List<String[]> users = new ArrayList<>();
 
-			PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE User_Name LIKE ?");
-			ps.setString(1, "%" + searchString + "%");
-			ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
 
-			List<String[]> users = new ArrayList<>();
+                String userName = rs.getString("User_Name");
+                String profilePicture = rs.getString("Profile_Picture");
+                String[] user = {userName, profilePicture};
+                users.add(user); // Returns the list of users
 
-			while (rs.next()) {
+            }
 
-				String userName = rs.getString("User_Name");
-				String profilePicture = rs.getString("Profile_Picture");
-				String[] user = { userName, profilePicture };
-				users.add(user); // Returns the list of users
+            return users;
 
-			}
+        } catch (SQLException e) {
 
-			return users;
+            e.printStackTrace();
+            return new ArrayList<>(); // Returns an empty list on error
 
-		} catch (SQLException e) {
+        }
+    }
 
-			e.printStackTrace();
-			return new ArrayList<>(); // Returns an empty list on error
+    @Override
+    public int queryChangeUsername(Integer id, String username) {
 
-		}
-	}
+        if (queryValidateID(id) == false) {
 
-	@Override
-	public int queryChangeUsername(Integer id, String username) {
+            return 0; // ID does not exist in the database, therefore the username cannot be changed
 
-		if (queryValidateID(id) == false) {
+        }
+        try {
+            // check if username already exist
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE User_Name LIKE ?");
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
 
-			return 0; // ID does not exist in the database, therefore the username cannot be changed
+            // if username already exist return 1
+            if (rs.next())
+                    return -1;
 
-		}
 
-		try {
+            ps = connection.prepareStatement("UPDATE USERS SET User_Name = ? WHERE ID = ?");
+            ps.setString(1, username);
+            ps.setInt(2, id);
+            int rowsUpdated = ps.executeUpdate();
 
-			PreparedStatement ps = connection.prepareStatement("UPDATE USERS SET User_Name = ? WHERE ID = ?");
-			ps.setString(1, username);
-			ps.setInt(2, id);
-			int rowsUpdated = ps.executeUpdate();
+            if (rowsUpdated > 0) {
 
-			if (rowsUpdated > 0) {
+                return 1; // Username successfully changed
 
-				return 1; // Username successfully changed
+            } else {
 
-			} else {
+                return 0; // No rows were updated
 
-				return 0; // No rows were updated
+            }
 
-			}
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0; // Error in executing the update statement
+        }
+    }
 
-		} catch (SQLException e) {
+    @Override
+    public int queryChangeEmail(Integer id, String email) {
 
-			e.printStackTrace();
-			return 0; // Error in executing the update statement
+        if (queryValidateID(id) == false) {
 
-		}
-	}
+            return 0; // ID does not exist in the database, therefore the email cannot be changed
 
-	@Override
-	public int queryChangeEmail(Integer id, String email) {
+        }
 
-		if (queryValidateID(id) == false) {
+        try {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM users WHERE Email LIKE ?");
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
 
-			return 0; // ID does not exist in the database, therefore the email cannot be changed
+            // if username already exist return 1
+            if (rs.next())
+                return -1;
 
-		}
+            ps = connection.prepareStatement("UPDATE USERS SET Email = ? WHERE ID = ?");
+            ps.setString(1, email);
+            ps.setInt(2, id);
+            int rowsUpdated = ps.executeUpdate();
 
-		try {
+            if (rowsUpdated > 0) {
 
-			PreparedStatement ps = connection.prepareStatement("UPDATE USERS SET Email = ? WHERE ID = ?");
-			ps.setString(1, email);
-			ps.setInt(2, id);
-			int rowsUpdated = ps.executeUpdate();
+                return 1; // Email successfully updated
 
-			if (rowsUpdated > 0) {
+            } else {
 
-				return 1; // Email successfully updated
+                return 0;
 
-			}
+            }
 
-			else {
+        } catch (SQLException e) {
 
-				return 0;
+            e.printStackTrace();
+            return 0; // Error executing update
 
-			}
+        }
+    }
 
-		} catch (SQLException e) {
+    @Override
+    public int queryChangePassword(Integer id, String password) {
 
-			e.printStackTrace();
-			return 0; // Error executing update
+        if (queryValidateID(id) == false) {
 
-		}
-	}
+            return 0; // ID does not exist in the database, therefore the password cannot be changed
 
-	@Override
-	public int queryChangePassword(Integer id, String password) {
+        }
 
-		if (queryValidateID(id) == false) {
+        try {
+            PreparedStatement ps = connection.prepareStatement("UPDATE USERS SET Password = ? WHERE ID = ?");
+            ps.setString(1, password);
+            ps.setInt(2, id);
+            int rowsUpdated = ps.executeUpdate();
 
-			return 0; // ID does not exist in the database, therefore the password cannot be changed
+            if (rowsUpdated > 0) {
 
-		}
+                return 1; // Password successfully changed
 
-		try {
+            } else {
 
-			PreparedStatement ps = connection.prepareStatement("UPDATE USERS SET Password = ? WHERE ID = ?");
-			ps.setString(1, password);
-			ps.setInt(2, id);
-			int rowsUpdated = ps.executeUpdate();
+                return 0; // No rows were updated. This means that password was not changed
 
-			if (rowsUpdated > 0) {
+            }
 
-				return 1; // Password successfully changed
+        } catch (SQLException e) {
 
-			} else {
+            e.printStackTrace();
+            return 0; // Error in executing update statement
 
-				return 0; // No rows were updated. This means that password was not changed
+        }
+    }
 
-			}
+    @Override
+    public int queryDeleteUser(Integer id) {
 
-		} catch (SQLException e) {
+        if (queryValidateID(id) == false) {
 
-			e.printStackTrace();
-			return 0; // Error in executing update statement
+            return 0; // ID does not exist in the database, therefore the user cannot be deleted
 
-		}
-	}
+        }
 
-	@Override
-	public int queryDeleteUser(Integer id) {
+        try {
 
-		if (queryValidateID(id) == false) {
+            PreparedStatement ps = connection.prepareStatement("DELETE FROM USERS WHERE ID = ?");
+            ps.setInt(1, id);
+            int rowsDeleted = ps.executeUpdate();
 
-			return 0; // ID does not exist in the database, therefore the user cannot be deleted
+            if (rowsDeleted > 0) {
 
-		}
+                connection.commit();
+                return 1; // User successfully deleted from the database
 
-		try {
+            } else {
 
-			PreparedStatement ps = connection.prepareStatement("DELETE FROM USERS WHERE ID = ?");
-			ps.setInt(1, id);
-			int rowsDeleted = ps.executeUpdate();
+                return 0; // No rows were deleted. This means the deletion of user was unsuccessful
 
-			if (rowsDeleted > 0) {
+            }
 
-				connection.commit();
-				return 1; // User successfully deleted from the database
+        } catch (SQLException e) {
 
-			} else {
+            e.printStackTrace();
+            return 0; // Error in executing delete statement
 
-				return 0; // No rows were deleted. This means the deletion of user was unsuccessful
+        }
+    }
 
-			}
+    @Override
+    public int queryAddMessage(Integer senderID, String message, Integer receiverID, Timestamp time) {
 
-		} catch (SQLException e) {
+        try {
 
-			e.printStackTrace();
-			return 0; // Error in executing delete statement
+            PreparedStatement ps = connection
+                    .prepareStatement("INSERT INTO chats(Sender_ID, Message, Receiver_ID, TIME) VALUES (?, ?, ?, ?)");
+            ps.setInt(1, senderID);
+            ps.setString(2, message);
+            ps.setInt(3, receiverID);
+            ps.setTimestamp(4, time);
+            int rowsInserted = ps.executeUpdate();
 
-		}
-	}
+            if (rowsInserted > 0) {
 
-	@Override
-	public int queryAddMessage(Integer senderID, String message, Integer receiverID, Timestamp time) {
+                return 1; // Message was successfully added to the database
 
-		try {
+            } else {
 
-			PreparedStatement ps = connection
-					.prepareStatement("INSERT INTO chats(Sender_ID, Message, Receiver_ID, TIME) VALUES (?, ?, ?, ?)");
-			ps.setInt(1, senderID);
-			ps.setString(2, message);
-			ps.setInt(3, receiverID);
-			ps.setTimestamp(4, time);
-			int rowsInserted = ps.executeUpdate();
+                return 0; // No rows were inserted
 
-			if (rowsInserted > 0) {
+            }
 
-				return 1; // Message was successfully added to the database
+        } catch (SQLException e) {
 
-			} else {
+            e.printStackTrace();
+            return 0; // Error in executing insert statement
 
-				return 0; // No rows were inserted
+        }
+    }
 
-			}
+    @Override
+    public List<String> queryGetMessages(Integer id, String partner) {
 
-		} catch (SQLException e) {
+        List<String> messages = new ArrayList<>();
+        Integer partnerID = Integer.valueOf(queryFindIDByUsername(partner));
 
-			e.printStackTrace();
-			return 0; // Error in executing insert statement
+        String fullMessage = new String();
+        List<String> timeStamps = new ArrayList<>();
 
-		}
-	}
+        try {
 
-	@Override
-	public List<String> queryGetMessages(Integer id, String partner) {
+            PreparedStatement ps = connection.prepareStatement(
+                    "SELECT * FROM chats WHERE Sender_ID = ? AND Receiver_ID = ? OR Receiver_ID = ? AND Sender_ID = ? ORDER BY Time;");
+            ps.setInt(1, id);
+            ps.setInt(2, partnerID);
+            ps.setInt(3, id);
+            ps.setInt(4, partnerID);
+            ResultSet rs = ps.executeQuery();
 
-		List<String> messages = new ArrayList<>();
-		Integer partnerID = Integer.valueOf(queryFindIDByUsername(partner));
+            while (rs.next()) {
 
-		String fullMessage = new String();
-		List<String> timeStamps = new ArrayList<>();
+                String key = rs.getString("Sender_ID");
+                String username = queryFindUsernameByID(Integer.valueOf(key));
+                String message = rs.getString("message");
+                String timestamp = rs.getString("time");
+                System.out.println("TIME: " + timestamp);
 
-		try {
+                fullMessage = "[".concat(username + " " + timestamp.substring(11, 16)).concat("]")
+                        + " [".concat(message).concat("]\t");
 
-			PreparedStatement ps = connection.prepareStatement(
-					"SELECT * FROM chats WHERE Sender_ID = ? AND Receiver_ID = ? OR Receiver_ID = ? AND Sender_ID = ? ORDER BY Time;");
-			ps.setInt(1, id);
-			ps.setInt(2, partnerID);
-			ps.setInt(3, id);
-			ps.setInt(4, partnerID);
-			ResultSet rs = ps.executeQuery();
+                System.out.println("FULL MESSAGE: " + fullMessage);
+                System.out.println(username + " " + timestamp + ": " + message + "\n");
 
-			while (rs.next()) {
+                timeStamps.add(timestamp + "\n");
+                messages.add(fullMessage);
 
-				String key = rs.getString("Sender_ID");
-				String username = queryFindUsernameByID(Integer.valueOf(key));
-				String message = rs.getString("message");
-				String timestamp = rs.getString("time");
-				System.out.println("TIME: " + timestamp);
+            }
 
-				fullMessage = "[".concat(username + " " + timestamp.substring(11, 16)).concat("]")
-						+ " [".concat(message).concat("]\t");
+            return messages;
 
-				System.out.println("FULL MESSAGE: " + fullMessage);
-				System.out.println(username + " " + timestamp + ": " + message + "\n");
+        } catch (SQLException e) {
 
-				timeStamps.add(timestamp + "\n");
-				messages.add(fullMessage);
+            e.printStackTrace();
 
-			}
+            return messages; // Returns an empty list on error
 
-			return messages;
+        }
+    }
 
-		} catch (SQLException e) {
+    public int queryDeleteSelectedMessages(Integer senderID, Integer receiverID, List<Integer> messageID) {
 
-			e.printStackTrace();
+        try {
 
-			return messages; // Returns an empty list on error
+            PreparedStatement ps = connection
+                    .prepareStatement("DELETE FROM chats WHERE Sender_ID = ? AND Receiver_ID = ? AND ID IN (?)");
+            ps.setInt(1, senderID);
+            ps.setInt(2, receiverID);
+            ps.setArray(3, connection.createArrayOf("INTEGER", messageID.toArray()));
+            ps.executeUpdate();
+            return 1;
 
-		}
-	}
+        } catch (SQLException e) {
 
-	public int queryDeleteSelectedMessages(Integer senderID, Integer receiverID, List<Integer> messageID) {
+            e.printStackTrace();
+            return 0;
 
-		try {
-
-			PreparedStatement ps = connection
-					.prepareStatement("DELETE FROM chats WHERE Sender_ID = ? AND Receiver_ID = ? AND ID IN (?)");
-			ps.setInt(1, senderID);
-			ps.setInt(2, receiverID);
-			ps.setArray(3, connection.createArrayOf("INTEGER", messageID.toArray()));
-			ps.executeUpdate();
-			return 1;
-
-		} catch (SQLException e) {
-
-			e.printStackTrace();
-			return 0;
-
-		}
-	}
+        }
+    }
 
 }
